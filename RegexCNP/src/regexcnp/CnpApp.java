@@ -1,6 +1,7 @@
 package regexcnp;
 
 import java.time.LocalDate;
+import java.time.Year;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -194,7 +195,7 @@ public class CnpApp extends Application {
             case 2:
                 int maxDay;
                 
-                if ((year % 4 == 0) || ((year % 100 == 0) && (year % 400 == 0)))
+                if (Year.of(year).isLeap())
                     maxDay = 29;
                 else
                     maxDay = 28;
