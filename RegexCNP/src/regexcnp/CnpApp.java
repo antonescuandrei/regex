@@ -85,13 +85,18 @@ public class CnpApp extends Application {
         cnpField.setTextFormatter(new TextFormatter<>(new UnaryOperator<Change>() {
             @Override
             public Change apply(Change change) {
+                // get the newly entered text and its length
                 String newText = change.getControlNewText();
-                int textLength = newText.length();
+                int newTextLength = newText.length();
+                
+                // just allow no text
+                if (newTextLength == 0)
+                    return change;
                 
                 // only accept up to 13 digits
-                if (containsOnlyDigits(newText) && (textLength <= CNP_LENGTH)) {
+                if (containsOnlyDigits(newText) && (newTextLength <= CNP_LENGTH)) {
                     // if exactly 13 digits have been entered
-                    if (textLength == CNP_LENGTH)
+                    if (newTextLength == CNP_LENGTH)
                         validationButton.setDisable(false); // enable the validation button
                     else
                         validationButton.setDisable(true); // otherwise, disable the button
@@ -99,7 +104,6 @@ public class CnpApp extends Application {
                     return change;
                 }
                 
-                // characters that are not digits are not allowed
                 return null;
             }
         }));
@@ -145,7 +149,7 @@ public class CnpApp extends Application {
      * @return true if the string is composed only of digits, false otherwise
      */
     private boolean containsOnlyDigits(String string) {
-        // extract the digits from the string to a char array
+        // extract the characters from the string to a char array
         char[] characters = string.toCharArray();
         
         // the Character.isDigit() method accepts non-latin digits, so checking is done through comparisons
@@ -225,14 +229,9 @@ public class CnpApp extends Application {
                 
                 break;
             case 2:
-                int maxDay;
+                int lastDayOfFebruary = Year.of(year).isLeap() ? 29 : 28;
                 
-                if (Year.of(year).isLeap())
-                    maxDay = 29;
-                else
-                    maxDay = 28;
-                
-                if (day > maxDay)
+                if (day > lastDayOfFebruary)
                     return false;
                 
                 break;
