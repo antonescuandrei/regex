@@ -13,6 +13,7 @@ import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
@@ -30,10 +31,10 @@ public class CnpApp extends Application {
     private final String CNP_REGEX = "[1-9]\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])(0[1-9]|[1-3]\\d|4[0-6]|5[12])\\d{2}[1-9]\\d";
     // length of a CNP
     private final int CNP_LENGTH = 13;
+    // length of the first part of the CNP containing the digits for sex and date of birth
+    private final int CNP_SEX_DATE_LENGTH = 7;
     // numbers used in the last part of the verification algorithm; for details see: https://ro.wikipedia.org/wiki/Cod_numeric_personal
     private final int[] CONTROL_ARRAY = {2, 7, 9, 1, 4, 6, 3, 5, 8, 2, 7, 9};
-    // flag whether future dates in CNP should be allowed
-    private final boolean ALLOW_FUTURE_DATES = true;
     
     /**
      * Creates all the controls of the application.
@@ -51,6 +52,10 @@ public class CnpApp extends Application {
         TextField cnpField = new TextField();
         cnpField.setAlignment(Pos.CENTER);
         
+        // a checkbox for allowing/disallowing CNP with future dates to be considered valid
+        CheckBox futureDateCheck = new CheckBox("Permiteti CNP din viitor");
+        futureDateCheck.setSelected(true);
+        
         // a button used for starting the validation algorithm
         Button validationButton = new Button("Valideaza CNP");
         validationButton.setDisable(true);
@@ -62,7 +67,7 @@ public class CnpApp extends Application {
         VBox layoutBox = new VBox(20);
         layoutBox.setAlignment(Pos.CENTER);
         layoutBox.setPadding(new Insets(20));
-        layoutBox.getChildren().addAll(instructionsLabel, cnpField, validationButton, resultLabel);
+        layoutBox.getChildren().addAll(instructionsLabel, cnpField, futureDateCheck, validationButton, resultLabel);
         
         // create a scene
         Scene scene = new Scene(layoutBox);
@@ -76,24 +81,25 @@ public class CnpApp extends Application {
         primaryStage.show();
         primaryStage.centerOnScreen();
         
-        // the text formatter ensures that only digits can be entered in the text field
+        // the text formatter ensures that max 13 digits can be entered in the text field and no other characters
         cnpField.setTextFormatter(new TextFormatter<>(new UnaryOperator<Change>() {
             @Override
             public Change apply(Change change) {
                 String newText = change.getControlNewText();
+                int textLength = newText.length();
                 
-                // digits are allowed
-                if (newText.matches("\\d{0,13}")) {
-                    // if 13 digits have been entered, enable the validation button
-                    if (newText.length() == 13)
-                        validationButton.setDisable(false);
+                // only accept up to 13 digits
+                if (containsOnlyDigits(newText) && (textLength <= CNP_LENGTH)) {
+                    // if exactly 13 digits have been entered
+                    if (textLength == CNP_LENGTH)
+                        validationButton.setDisable(false); // enable the validation button
                     else
                         validationButton.setDisable(true); // otherwise, disable the button
                     
                     return change;
                 }
                 
-                // reject any characters other than digits
+                // characters that are not digits are not allowed
                 return null;
             }
         }));
@@ -102,6 +108,14 @@ public class CnpApp extends Application {
         cnpField.textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldString, String newString) {
+                resultLabel.setText(null);
+            }
+        });
+        
+        // when the selected property of the future date checkbox changes, empty the result label
+        futureDateCheck.selectedProperty().addListener(new ChangeListener<Boolean>() {
+            @Override
+            public void changed(ObservableValue<? extends Boolean> observable, Boolean wasSelected, Boolean isSelected) {
                 resultLabel.setText(null);
             }
         });
@@ -117,7 +131,7 @@ public class CnpApp extends Application {
                 Matcher matcher = cnpPattern.matcher(text);
                 
                 // if the CNP matches the pattern and the date is valid and the algorithm is valid
-                if (matcher.matches() && dateIsValid(text.substring(0, 7)) && algorithmIsValid(text))
+                if (matcher.matches() && dateIsValid(text.substring(0, CNP_SEX_DATE_LENGTH), futureDateCheck.isSelected()) && algorithmIsValid(text))
                     resultLabel.setText("CNP valid."); // show a positive result
                 else
                     resultLabel.setText("CNP invalid."); // otherwise, show a negative result
@@ -126,16 +140,34 @@ public class CnpApp extends Application {
     }
     
     /**
+     * Checks if some string contains only digits.
+     * @param string the string to be checked
+     * @return true if the string is composed only of digits, false otherwise
+     */
+    private boolean containsOnlyDigits(String string) {
+        // extract the digits from the string to a char array
+        char[] characters = string.toCharArray();
+        
+        // the Character.isDigit() method accepts non-latin digits, so checking is done through comparisons
+        for (char c : characters) 
+            if ((c < '0') || (c > '9'))
+                return false;
+        
+        return true;
+    }
+    
+    /**
      * Validates the date in the CNP.
      * @param cnpStart the first part of the CNP containing the sex and the date of birth
+     * @param allowFutureDates indicates whether dates in the future are valid or not
      * @return true if the date is valid, false otherwise
      */
-    private boolean dateIsValid(String cnpStart) {
+    private boolean dateIsValid(String cnpStart, boolean allowFutureDates) {
         // extract the digits from the string to a char array
         char[] digitChars = cnpStart.toCharArray();
         // transform the digit chars into ints and store them in an int array
-        int[] digits = new int[7];
-        for (int i = 0; i < 7; i++)
+        int[] digits = new int[CNP_SEX_DATE_LENGTH];
+        for (int i = 0; i < CNP_SEX_DATE_LENGTH; i++)
             digits[i] = Character.getNumericValue(digitChars[i]);
         
         int sexDigit = digits[0]; // get the digit representing the sex
@@ -208,8 +240,8 @@ public class CnpApp extends Application {
                 return false;
         }
         
-        // if future dates are not allowed, check that the date in the CNP is not in the future
-        if (!ALLOW_FUTURE_DATES) {
+        // if future dates are not allowed, verify that the date in the CNP is not in the future
+        if (!allowFutureDates) {
             LocalDate currentDate = LocalDate.now();
             LocalDate cnpDate = LocalDate.of(year, month, day);
             
@@ -234,10 +266,10 @@ public class CnpApp extends Application {
         for (int i = 0; i < CNP_LENGTH; i++)
             digits[i] = Character.getNumericValue(digitChars[i]);
         
-        int maxDigits = CNP_LENGTH - 1; // maximum number of digits
+        int maxDigits = CNP_LENGTH - 1; // max number of digits used in the algorithm
         int lastDigit = digits[maxDigits]; // last digit in the CNP (control digit)
-        
         int sum = 0; // initialize the sum
+        
         // perform the necessary multiplications and additions
         for (int i = 0; i < maxDigits; i++)
             sum += digits[i] * CONTROL_ARRAY[i]; 
