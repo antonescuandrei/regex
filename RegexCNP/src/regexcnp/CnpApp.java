@@ -1,9 +1,9 @@
 package regexcnp;
 
+import java.time.LocalDate;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.time.LocalDate;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -52,7 +52,7 @@ public class CnpApp extends Application {
         
         // a button used for starting the validation algorithm
         Button validationButton = new Button("Valideaza CNP");
-        validationButton.setDisable(true); // make the button initially disabled
+        validationButton.setDisable(true);
         
         // a label that will show the result of the validation algorithm
         Label resultLabel = new Label();
@@ -236,12 +236,12 @@ public class CnpApp extends Application {
         int maxDigits = CNP_LENGTH - 1; // maximum number of digits
         int lastDigit = digits[maxDigits]; // last digit in the CNP (control digit)
         
-        int sum = 0; // initialie the sum
+        int sum = 0; // initialize the sum
         // perform the necessary multiplications and additions
         for (int i = 0; i < maxDigits; i++)
             sum += digits[i] * CONTROL_ARRAY[i]; 
         
-        // identify the required control digit based on the remainder
+        // identify the actual control digit based on the remainder
         int remainder = sum % 11;
         int controlDigit = remainder;
         if (remainder == 10)
