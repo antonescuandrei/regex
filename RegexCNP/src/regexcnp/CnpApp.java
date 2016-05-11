@@ -3,6 +3,7 @@ package regexcnp;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.time.LocalDate;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -30,6 +31,8 @@ public class CnpApp extends Application {
     private final int CNP_LENGTH = 13;
     // numbers used in the last part of the verification algorithm; for details see: https://ro.wikipedia.org/wiki/Cod_numeric_personal
     private final int[] CONTROL_ARRAY = {2, 7, 9, 1, 4, 6, 3, 5, 8, 2, 7, 9};
+    // flag whether future dates in CNP should be allowed
+    private final boolean ALLOW_FUTURE_DATES = true;
     
     /**
      * Creates all the controls of the application.
@@ -164,7 +167,7 @@ public class CnpApp extends Application {
                 
                 break;
             default:
-                break;
+                return false;
         }
         
         int month = digits[3] * 10 + digits[4]; // get the month
@@ -179,20 +182,41 @@ public class CnpApp extends Application {
             case 8:
             case 10:
             case 12:
-                return day < 32;
+                break;
             case 4:
             case 6:
             case 9:
             case 11:
-                return day < 31;
+                if (day > 30)
+                    return false;
+                
+                break;
             case 2:
+                int maxDay;
+                
                 if ((year % 4 == 0) || ((year % 100 == 0) && (year % 400 == 0)))
-                    return day < 30;
+                    maxDay = 29;
                 else
-                    return day < 29;
+                    maxDay = 28;
+                
+                if (day > maxDay)
+                    return false;
+                
+                break;
             default:
                 return false;
         }
+        
+        // if future dates are not allowed, check that the date in the CNP is not in the future
+        if (!ALLOW_FUTURE_DATES) {
+            LocalDate currentDate = LocalDate.now();
+            LocalDate cnpDate = LocalDate.of(year, month, day);
+            
+            if (cnpDate.isAfter(currentDate))
+                return false;
+        }
+        
+        return true;
     }
     
     /**
