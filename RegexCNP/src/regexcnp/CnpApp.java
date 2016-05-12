@@ -55,9 +55,6 @@ public class CnpApp extends Application {
         // of the cnp: green for valid, red for invalid, invisible when no result to show
         DropShadow cnpGlow = new DropShadow();
         cnpGlow.setColor(Color.TRANSPARENT);
-        cnpGlow.setOffsetY(0);
-        cnpGlow.setWidth(20);
-        cnpGlow.setHeight(20);
         
         // a text field where the CNP is entered
         TextField cnpField = new TextField();
