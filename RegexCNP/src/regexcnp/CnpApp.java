@@ -39,15 +39,25 @@ public class CnpApp extends Application {
     // numbers used in the last part of the verification algorithm; for details see: https://ro.wikipedia.org/wiki/Cod_numeric_personal
     private final int[] CONTROL_ARRAY = {2, 7, 9, 1, 4, 6, 3, 5, 8, 2, 7, 9};
     
+    // the pattern used for validation
+    private Pattern cnpPattern;
+    // a copy of the last verified cnp
+    private String cnpVerifiedLast;
+    
+    /**
+     * Compiles the pattern used for validation.
+     */
+    @Override
+    public void init() {
+        cnpPattern = Pattern.compile(CNP_REGEX);
+    }
+    
     /**
      * Creates all the controls of the application.
      * @param primaryStage the primary stage of the application
      */
     @Override
     public void start(Stage primaryStage) {
-        // compile the pattern used for validation
-        Pattern cnpPattern = Pattern.compile(CNP_REGEX);
-        
         // a label with instructions for the user
         Label instructionsLabel = new Label("Introduceti CNP in campul de mai jos:");
         
@@ -124,22 +134,24 @@ public class CnpApp extends Application {
         }));
         
         // the listener of the text property empties the result label whenever the contents of the cnp field changes
-        // also makes the glow of the cnp field invisible
+        // also makes the glow of the cnp field invisible and the last verified cnp null
         cnpField.textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldString, String newString) {
                 resultLabel.setText(null);
                 cnpGlow.setColor(Color.TRANSPARENT);
+                cnpVerifiedLast = null;
             }
         });
         
         // when the selected property of the future date checkbox changes, empty the result label
-        // also make the glow of the cnp field invisible
+        // also make the glow of the cnp field invisible and the last verified cnp null
         futureDateCheck.selectedProperty().addListener(new ChangeListener<Boolean>() {
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean wasSelected, Boolean isSelected) {
                 resultLabel.setText(null);
                 cnpGlow.setColor(Color.TRANSPARENT);
+                cnpVerifiedLast = null;
             }
         });
         
@@ -148,13 +160,19 @@ public class CnpApp extends Application {
             @Override
             public void handle(ActionEvent ae) {
                 // get the text from the field
-                String text = cnpField.getText();
+                String cnpText = cnpField.getText();
+
+                // if it's the same cnp, don't verify it again
+                if (cnpText.equals(cnpVerifiedLast))
+                    return;
+                
+                cnpVerifiedLast = cnpText;
                 
                 // create a matcher from the pattern and the text
-                Matcher matcher = cnpPattern.matcher(text);
+                Matcher matcher = cnpPattern.matcher(cnpText);
                 
                 // if the CNP matches the pattern and the date is valid and the algorithm is valid
-                if (matcher.matches() && dateIsValid(text.substring(0, CNP_SEX_DATE_LENGTH), futureDateCheck.isSelected()) && algorithmIsValid(text)) {
+                if (matcher.matches() && dateIsValid(cnpText.substring(0, CNP_SEX_DATE_LENGTH), futureDateCheck.isSelected()) && algorithmIsValid(cnpText)) {
                     resultLabel.setText("CNP valid."); // show a positive result
                     cnpGlow.setColor(Color.GREEN); // make the cnp field glow green
                 } else {
