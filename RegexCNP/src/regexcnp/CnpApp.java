@@ -18,8 +18,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.TextFormatter.Change;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -48,26 +51,41 @@ public class CnpApp extends Application {
         // a label with instructions for the user
         Label instructionsLabel = new Label("Introduceti CNP in campul de mai jos:");
         
+        // an effect used to show a glow around the cnp field based on the validity
+        // of the cnp: green for valid, red for invalid, invisible when no result to show
+        DropShadow cnpGlow = new DropShadow();
+        cnpGlow.setColor(Color.TRANSPARENT);
+        cnpGlow.setOffsetY(0);
+        cnpGlow.setWidth(20);
+        cnpGlow.setHeight(20);
+        
         // a text field where the CNP is entered
         TextField cnpField = new TextField();
         cnpField.setAlignment(Pos.CENTER);
+        cnpField.setEffect(cnpGlow);
         
-        // a checkbox for allowing/disallowing CNP with future dates to be considered valid
+        // a button used for starting the validation algorithm
+        Button validationButton = new Button("Valideaza");
+        validationButton.setDisable(true);
+        
+        // a horizontal box layout for the cnp field and validation button
+        HBox cnpFieldButtonBox = new HBox(10);
+        cnpFieldButtonBox.setAlignment(Pos.CENTER);
+        cnpFieldButtonBox.getChildren().addAll(cnpField, validationButton);
+        
+         // a checkbox for allowing/disallowing CNP with future dates to be considered valid
         CheckBox futureDateCheck = new CheckBox("Permiteti CNP din viitor");
         futureDateCheck.setSelected(true);
         
-        // a button used for starting the validation algorithm
-        Button validationButton = new Button("Valideaza CNP");
-        validationButton.setDisable(true);
-        
         // a label that will show the result of the validation algorithm
         Label resultLabel = new Label();
+        resultLabel.setAlignment(Pos.CENTER);
+        resultLabel.setMaxWidth(Double.MAX_VALUE);
         
         // a vertical box layout for the controls
-        VBox layoutBox = new VBox(20);
-        layoutBox.setAlignment(Pos.CENTER);
+        VBox layoutBox = new VBox(10);
         layoutBox.setPadding(new Insets(20));
-        layoutBox.getChildren().addAll(instructionsLabel, cnpField, futureDateCheck, validationButton, resultLabel);
+        layoutBox.getChildren().addAll(instructionsLabel, cnpFieldButtonBox, futureDateCheck, resultLabel);
         
         // create a scene
         Scene scene = new Scene(layoutBox);
@@ -109,18 +127,22 @@ public class CnpApp extends Application {
         }));
         
         // the listener of the text property empties the result label whenever the contents of the cnp field changes
+        // also makes the glow of the cnp field invisible
         cnpField.textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldString, String newString) {
                 resultLabel.setText(null);
+                cnpGlow.setColor(Color.TRANSPARENT);
             }
         });
         
         // when the selected property of the future date checkbox changes, empty the result label
+        // also make the glow of the cnp field invisible
         futureDateCheck.selectedProperty().addListener(new ChangeListener<Boolean>() {
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean wasSelected, Boolean isSelected) {
                 resultLabel.setText(null);
+                cnpGlow.setColor(Color.TRANSPARENT);
             }
         });
         
@@ -135,10 +157,13 @@ public class CnpApp extends Application {
                 Matcher matcher = cnpPattern.matcher(text);
                 
                 // if the CNP matches the pattern and the date is valid and the algorithm is valid
-                if (matcher.matches() && dateIsValid(text.substring(0, CNP_SEX_DATE_LENGTH), futureDateCheck.isSelected()) && algorithmIsValid(text))
+                if (matcher.matches() && dateIsValid(text.substring(0, CNP_SEX_DATE_LENGTH), futureDateCheck.isSelected()) && algorithmIsValid(text)) {
                     resultLabel.setText("CNP valid."); // show a positive result
-                else
+                    cnpGlow.setColor(Color.GREEN); // make the cnp field glow green
+                } else {
                     resultLabel.setText("CNP invalid."); // otherwise, show a negative result
+                    cnpGlow.setColor(Color.RED); // make the cnp field glow red
+                }
             }
         });
     }
@@ -276,7 +301,7 @@ public class CnpApp extends Application {
      * @param string the string to convert
      * @return an int array containing the digits of the string 
      */
-    int[] convertStringToDigits(String string) {
+    private int[] convertStringToDigits(String string) {
         // extract the digits from the string to a char array
         char[] digitChars = string.toCharArray();
         // transform the digit chars into ints and store them in an int array
