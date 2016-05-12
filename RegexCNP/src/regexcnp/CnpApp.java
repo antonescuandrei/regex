@@ -167,13 +167,7 @@ public class CnpApp extends Application {
      * @return true if the date is valid, false otherwise
      */
     private boolean dateIsValid(String cnpStart, boolean allowFutureDates) {
-        // extract the digits from the string to a char array
-        char[] digitChars = cnpStart.toCharArray();
-        // transform the digit chars into ints and store them in an int array
-        int[] digits = new int[CNP_SEX_DATE_LENGTH];
-        for (int i = 0; i < CNP_SEX_DATE_LENGTH; i++)
-            digits[i] = Character.getNumericValue(digitChars[i]);
-        
+        int[] digits = convertStringToDigits(cnpStart); // get the first part of the cnp as an int array
         int sexDigit = digits[0]; // get the digit representing the sex
         int year = digits[1] * 10 + digits[2]; // get the last two digits of the year
         
@@ -258,13 +252,7 @@ public class CnpApp extends Application {
      * @return true if the algorithm yields a valid result, false otherwise
      */
     private boolean algorithmIsValid(String cnp) {
-        // extract the digits from the string to a char array
-        char[] digitChars = cnp.toCharArray();
-        // transform the digits into ints and store them in an int array
-        int[] digits = new int[CNP_LENGTH];
-        for (int i = 0; i < CNP_LENGTH; i++)
-            digits[i] = Character.getNumericValue(digitChars[i]);
-        
+        int[] digits = convertStringToDigits(cnp); // get the cnp as an int array
         int maxDigits = CNP_LENGTH - 1; // max number of digits used in the algorithm
         int lastDigit = digits[maxDigits]; // last digit in the CNP (control digit)
         int sum = 0; // initialize the sum
@@ -281,5 +269,21 @@ public class CnpApp extends Application {
         
         // check if the last digit in the CNP is the actual control digit
         return lastDigit == controlDigit;
+    }
+    
+    /**
+     * Converts a string containing only digits into an array of ints.
+     * @param string the string to convert
+     * @return an int array containing the digits of the string 
+     */
+    int[] convertStringToDigits(String string) {
+        // extract the digits from the string to a char array
+        char[] digitChars = string.toCharArray();
+        // transform the digit chars into ints and store them in an int array
+        int[] digits = new int[digitChars.length];
+        for (int i = 0; i < digits.length; i++)
+            digits[i] = Character.getNumericValue(digitChars[i]);
+        
+        return digits;
     }
 }
